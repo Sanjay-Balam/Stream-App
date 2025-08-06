@@ -14,6 +14,8 @@ export interface GuestStreamDocument extends Document {
   endedAt?: Date;
   expiresAt: Date;
   guestDisplayName: string;
+  shareCount: number;
+  lastSharedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -90,6 +92,15 @@ const guestStreamSchema = new Schema<GuestStreamDocument>({
     required: true,
     trim: true,
     maxlength: 30
+  },
+  shareCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  lastSharedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

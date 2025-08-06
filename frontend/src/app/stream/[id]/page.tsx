@@ -9,6 +9,7 @@ import { useAuthStore } from '../../../stores/auth';
 import Navbar from '../../../components/Navbar';
 import VideoPlayer from '../../../components/VideoPlayer';
 import Chat from '../../../components/Chat';
+import ShareStreamModal from '../../../components/ShareStreamModal';
 import { Eye, Heart, Share, Users, Settings } from 'lucide-react';
 
 export default function StreamPage() {
@@ -19,6 +20,7 @@ export default function StreamPage() {
   const [error, setError] = useState('');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [manualStream, setManualStream] = useState<MediaStream | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const { user, isAuthenticated } = useAuthStore();
   const manualVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -316,7 +318,11 @@ export default function StreamPage() {
                     </button>
                   )}
                   
-                  <button className="btn-secondary p-2">
+                  <button 
+                    onClick={() => setShowShareModal(true)}
+                    className="btn-secondary p-2 hover:bg-primary-600 transition-colors"
+                    title="Share stream"
+                  >
                     <Share className="w-4 h-4" />
                   </button>
                   
@@ -345,6 +351,13 @@ export default function StreamPage() {
         muted
         playsInline
         style={{ display: 'none' }}
+      />
+
+      {/* Share Modal */}
+      <ShareStreamModal
+        streamId={streamId}
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
       />
     </div>
   );

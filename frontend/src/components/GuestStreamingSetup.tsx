@@ -1,14 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { Monitor, Smartphone, Camera, Mic, Settings, ExternalLink, UserPlus, AlertTriangle } from 'lucide-react';
+import { Monitor, Smartphone, Camera, Mic, Settings, ExternalLink, UserPlus, AlertTriangle, Share, Users, Copy } from 'lucide-react';
 
 interface GuestStreamingSetupProps {
   streamKey?: string;
+  streamId?: string;
 }
 
-export default function GuestStreamingSetup({ streamKey }: GuestStreamingSetupProps) {
+export default function GuestStreamingSetup({ streamKey, streamId }: GuestStreamingSetupProps) {
   const [activeTab, setActiveTab] = useState<'browser' | 'software'>('browser');
+  const [copied, setCopied] = useState(false);
+
+  const streamUrl = streamId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/stream/${streamId}` : '';
+
+  const copyStreamUrl = async () => {
+    if (!streamUrl) return;
+    
+    try {
+      await navigator.clipboard.writeText(streamUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
+    }
+  };
 
   const browserSteps = [
     {
@@ -166,6 +182,68 @@ export default function GuestStreamingSetup({ streamKey }: GuestStreamingSetupPr
           </div>
         </div>
       </div>
+
+      {/* Sharing Section */}
+      {streamId && (
+        <div className="card p-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="w-10 h-10 bg-primary-500 bg-opacity-20 rounded-full flex items-center justify-center">
+              <Share className="w-5 h-5 text-primary-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Share Your Stream</h3>
+              <p className="text-sm text-gray-400">Invite viewers to watch your stream</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Stream URL
+              </label>
+              <div className="flex">
+                <input
+                  type="text"
+                  value={streamUrl}
+                  readOnly
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-l-lg px-3 py-2 text-white text-sm"
+                />
+                <button
+                  onClick={copyStreamUrl}
+                  className={`px-4 py-2 border border-l-0 border-gray-600 rounded-r-lg transition-colors ${
+                    copied 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {copied ? 'Copied!' : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-primary-500 bg-opacity-10 border border-primary-500 rounded-lg p-4">
+              <div className="flex items-start space-x-2">
+                <Users className="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-primary-200">
+                  <strong>Share Early:</strong> Your stream URL is ready to share even before you go live! 
+                  Send it to friends, post on social media, or share in communities to build anticipation 
+                  for your upcoming stream.
+                </div>
+              </div>
+            </div>
+
+            <div className="text-xs text-gray-400 space-y-1">
+              <p>💡 <strong>Pro Tips for Getting Viewers:</strong></p>
+              <ul className="ml-4 space-y-1">
+                <li>• Share on social media with relevant hashtags</li>
+                <li>• Post in Discord communities or gaming groups</li>
+                <li>• Let friends know when you'll go live</li>
+                <li>• Use the share button on your stream page for quick sharing</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card p-6">
         <div className="text-center">

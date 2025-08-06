@@ -49,6 +49,8 @@ export const guestStreamRoutes = new Elysia({ prefix: '/guest-streams' })
           startedAt: null,
           endedAt: null,
           guestDisplayName,
+          shareCount: 0,
+          lastSharedAt: null,
           expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -183,6 +185,94 @@ export const guestStreamRoutes = new Elysia({ prefix: '/guest-streams' })
       return {
         success: false,
         error: 'Failed to delete guest stream'
+      };
+    }
+  })
+
+  .get('/:id/share-info', async ({ params }) => {
+    try {
+      const guestStream = await GuestStream.findById(params.id);
+
+      if (!guestStream) {
+        return {
+          success: false,
+          error: 'Guest stream not found'
+        };
+      }
+
+      // Check if stream has expired
+      if (new Date() > guestStream.expiresAt) {
+        await GuestStream.findByIdAndDelete(params.id);
+        return {
+          success: false,
+          error: 'Guest stream has expired'
+        };
+      }
+
+      // Generate sharing info
+      const shareInfo = {
+        streamId: guestStream._id,
+        title: guestStream.title,
+        description: guestStream.description,
+        streamerName: guestStream.guestDisplayName,
+        category: guestStream.category,
+        isLive: guestStream.isLive,
+        viewerCount: guestStream.viewerCount,
+        shareCount: guestStream.shareCount,
+        shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/stream/${guestStream._id}`,
+        expiresAt: guestStream.expiresAt
+      };
+
+      return {
+        success: true,
+        data: { shareInfo }
+      };
+    } catch (error) {
+      console.error('Get share info error:', error);
+      return {
+        success: false,
+        error: 'Failed to get share info'
+      };
+    }
+  })
+
+  .post('/:id/share', async ({ params }) => {
+    try {
+      const guestStream = await GuestStream.findById(params.id);
+
+      if (!guestStream) {
+        return {
+          success: false,
+          error: 'Guest stream not found'
+        };
+      }
+
+      // Check if stream has expired
+      if (new Date() > guestStream.expiresAt) {
+        await GuestStream.findByIdAndDelete(params.id);
+        return {
+          success: false,
+          error: 'Guest stream has expired'
+        };
+      }
+
+      // Increment share count and update last shared timestamp
+      guestStream.shareCount += 1;
+      guestStream.lastSharedAt = new Date();
+      await guestStream.save();
+
+      return {
+        success: true,
+        data: { 
+          message: 'Share recorded successfully',
+          shareCount: guestStream.shareCount
+        }
+      };
+    } catch (error) {
+      console.error('Record share error:', error);
+      return {
+        success: false,
+        error: 'Failed to record share'
       };
     }
   });
