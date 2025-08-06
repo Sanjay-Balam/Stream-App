@@ -11,7 +11,6 @@ const userSchema = new Schema<UserDocument>({
   username: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
     minlength: 3,
     maxlength: 30
@@ -19,7 +18,6 @@ const userSchema = new Schema<UserDocument>({
   email: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
     trim: true
   },
@@ -62,7 +60,6 @@ const userSchema = new Schema<UserDocument>({
   }],
   streamKey: {
     type: String,
-    unique: true,
     sparse: true
   }
 }, {
@@ -82,7 +79,12 @@ userSchema.pre('save', async function(next) {
 });
 
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
+  console.log('Comparing passwords...');
+  console.log('Candidate password length:', candidatePassword.length);
+  console.log('Stored hash length:', this.password.length);
+  const result = await bcrypt.compare(candidatePassword, this.password);
+  console.log('Password comparison result:', result);
+  return result;
 };
 
 userSchema.methods.generateStreamKey = function(): string {
@@ -91,8 +93,8 @@ userSchema.methods.generateStreamKey = function(): string {
   return streamKey;
 };
 
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ streamKey: 1 });
+userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ streamKey: 1 }, { unique: true, sparse: true });
 
 export const User = mongoose.model<UserDocument>('User', userSchema);

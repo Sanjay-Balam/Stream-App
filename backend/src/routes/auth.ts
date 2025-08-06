@@ -6,12 +6,14 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post('/register', async ({ body }) => {
     try {
       const { username, email, password, displayName } = body;
+      console.log('Registration attempt for email:', email, 'username:', username);
 
       const existingUser = await User.findOne({
         $or: [{ email }, { username }]
       });
 
       if (existingUser) {
+        console.log('User already exists:', existingUser.email === email ? 'email' : 'username');
         return {
           success: false,
           error: existingUser.email === email ? 'Email already exists' : 'Username already exists'
@@ -26,6 +28,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       });
 
       await user.save();
+      console.log('User registered successfully:', user.email);
 
       const tokens = generateTokens(user);
 
@@ -62,10 +65,24 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post('/login', async ({ body }) => {
     try {
       const { email, password } = body;
+      console.log('Login attempt for email:', email);
 
       const user = await User.findOne({ email });
+      console.log('User found:', user ? 'Yes' : 'No');
 
-      if (!user || !(await user.comparePassword(password))) {
+      if (!user) {
+        console.log('User not found for email:', email);
+        return {
+          success: false,
+          error: 'Invalid credentials'
+        };
+      }
+
+      const isPasswordValid = await user.comparePassword(password);
+      console.log('Password valid:', isPasswordValid);
+
+      if (!isPasswordValid) {
+        console.log('Password comparison failed');
         return {
           success: false,
           error: 'Invalid credentials'
@@ -73,6 +90,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }
 
       const tokens = generateTokens(user);
+      console.log('Login successful for user:', user.email);
 
       return {
         success: true,
