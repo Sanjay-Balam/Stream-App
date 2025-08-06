@@ -89,10 +89,12 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         };
       }
 
+      console.log('Generating tokens...');
       const tokens = generateTokens(user);
+      console.log('Tokens generated successfully:', !!tokens.accessToken, !!tokens.refreshToken);
       console.log('Login successful for user:', user.email);
 
-      return {
+      const response = {
         success: true,
         data: {
           user: {
@@ -107,6 +109,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
           ...tokens
         }
       };
+      
+      console.log('Sending response:', JSON.stringify(response, null, 2));
+      return response;
     } catch (error) {
       console.error('Login error:', error);
       return {

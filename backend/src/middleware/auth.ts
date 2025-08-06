@@ -54,14 +54,26 @@ export const authMiddleware = async (context: Context) => {
 };
 
 export const generateTokens = (user: any) => {
-  const payload: JWTPayload = {
-    userId: user._id.toString(),
-    username: user.username,
-    role: user.role
-  };
+  try {
+    console.log('GenerateTokens: Creating payload for user:', user.username);
+    const payload: JWTPayload = {
+      userId: user._id.toString(),
+      username: user.username,
+      role: user.role
+    };
+    console.log('GenerateTokens: Payload created:', payload);
 
-  const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '15m' });
-  const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    console.log('GenerateTokens: Signing access token...');
+    const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '15m' });
+    console.log('GenerateTokens: Access token created, length:', accessToken.length);
 
-  return { accessToken, refreshToken };
+    console.log('GenerateTokens: Signing refresh token...');
+    const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    console.log('GenerateTokens: Refresh token created, length:', refreshToken.length);
+
+    return { accessToken, refreshToken };
+  } catch (error) {
+    console.error('GenerateTokens: Error generating tokens:', error);
+    throw error;
+  }
 };

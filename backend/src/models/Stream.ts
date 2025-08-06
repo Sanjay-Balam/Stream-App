@@ -52,8 +52,7 @@ const streamSchema = new Schema<StreamDocument>({
   },
   streamKey: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   thumbnail: {
     type: String,
@@ -76,5 +75,6 @@ streamSchema.index({ isLive: 1 });
 streamSchema.index({ category: 1 });
 streamSchema.index({ createdAt: -1 });
 streamSchema.index({ viewerCount: -1 });
+streamSchema.index({ streamKey: 1 }, { unique: true });
 
 export const Stream = mongoose.model<StreamDocument>('Stream', streamSchema);

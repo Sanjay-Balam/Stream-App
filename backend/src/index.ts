@@ -8,8 +8,10 @@ import { WebSocketService } from './services/websocket';
 
 const app = new Elysia()
   .use(cors({
-    origin: env.FRONTEND_URL,
-    credentials: true
+    origin: [env.FRONTEND_URL, 'http://localhost:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   }))
   .use(swagger({
     documentation: {
