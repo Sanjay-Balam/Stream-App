@@ -1,6 +1,0 @@
-{
-  "/not-found": "app/not-found.js",
-  "/guest-stream/page": "app/guest-stream/page.js",
-  "/page": "app/page.js",
-  "/stream/[id]/page": "app/stream/[id]/page.js"
-}
