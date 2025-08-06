@@ -49,8 +49,11 @@ export default function HomePage() {
             <Link href="/browse" className="btn-primary px-8 py-3 text-lg">
               Browse Streams
             </Link>
-            <Link href="/become-streamer" className="btn-secondary px-8 py-3 text-lg">
-              Start Streaming
+            <Link href="/guest-stream" className="btn-secondary px-8 py-3 text-lg">
+              Stream as Guest
+            </Link>
+            <Link href="/become-streamer" className="btn-outline px-8 py-3 text-lg">
+              Create Account
             </Link>
           </div>
         </section>
@@ -144,9 +147,14 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">No Live Streams</h3>
               <p className="text-gray-400 mb-4">There are no live streams at the moment.</p>
-              <Link href="/register" className="btn-primary">
-                Start Your First Stream
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/guest-stream" className="btn-primary">
+                  Stream as Guest
+                </Link>
+                <Link href="/register" className="btn-secondary">
+                  Create Account
+                </Link>
+              </div>
             </div>
           )}
         </section>

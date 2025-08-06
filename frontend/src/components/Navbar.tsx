@@ -114,6 +114,14 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="flex items-center space-x-4">
+                <Link 
+                  href="/guest-stream"
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <Video className="w-4 h-4" />
+                  <span className="hidden sm:inline">Stream as Guest</span>
+                  <span className="sm:hidden">Stream</span>
+                </Link>
                 <Link href="/login" className="btn-secondary">
                   Login
                 </Link>

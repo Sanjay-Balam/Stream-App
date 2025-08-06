@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { api } from '../../../lib/api';
 import { Stream } from '../../../types';
@@ -18,10 +18,30 @@ export default function StreamPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [manualStream, setManualStream] = useState<MediaStream | null>(null);
   const { user, isAuthenticated } = useAuthStore();
+  const manualVideoRef = useRef<HTMLVideoElement>(null);
 
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4001';
-  const isStreamer = stream?.streamerId._id === user?.id;
+  
+  // Check if user is the streamer - for authenticated users or guest streamers
+  const isStreamer = useMemo(() => {
+    if (!stream) return false;
+    
+    // For authenticated users
+    if (user && stream.streamerId._id === user.id) {
+      return true;
+    }
+    
+    // For guest streamers - check if this browser created the guest stream
+    if (stream.isGuestStream && typeof window !== 'undefined') {
+      const guestId = localStorage.getItem('guestId');
+      const guestStreamId = localStorage.getItem('guestStreamId');
+      return guestId === stream.streamerId._id && guestStreamId === stream._id;
+    }
+    
+    return false;
+  }, [stream, user]);
 
   const {
     localStream,
@@ -93,7 +113,7 @@ export default function StreamPage() {
     );
   }
 
-  const displayStream = isStreamer ? localStream : remoteStream;
+  const displayStream = isStreamer ? (localStream || manualStream) : remoteStream;
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -113,10 +133,80 @@ export default function StreamPage() {
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="text-center">
                     {stream.isLive ? (
-                      <div>
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-                        <p className="text-white">Connecting to stream...</p>
-                      </div>
+                      isStreamer ? (
+                        // If this is the streamer but no local stream, show camera setup
+                        <div>
+                          <div className="w-16 h-16 bg-primary-500 bg-opacity-20 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <Eye className="w-8 h-8 text-primary-500" />
+                          </div>
+                          <p className="text-white mb-4">
+                            {stream.isGuestStream ? 'Guest Stream Active!' : 'Ready to start streaming'}
+                          </p>
+                          <p className="text-gray-400 text-sm mb-4">
+                            {stream.isGuestStream 
+                              ? 'Your guest stream is live! Use OBS or streaming software with your stream key to broadcast.'
+                              : 'Click the button below to start your camera and begin streaming'
+                            }
+                          </p>
+                          {stream.isGuestStream && (
+                            <div className="bg-gray-700 rounded-lg p-4 mb-4 text-left">
+                              <h4 className="text-white font-medium mb-2">RTMP Settings</h4>
+                              <div className="space-y-2 text-sm">
+                                <div>
+                                  <span className="text-gray-400">Server URL:</span>
+                                  <code className="ml-2 bg-gray-800 px-2 py-1 rounded text-primary-400">
+                                    rtmp://localhost:1935/live
+                                  </code>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400">Stream Key:</span>
+                                  <code className="ml-2 bg-gray-800 px-2 py-1 rounded text-primary-400 break-all text-xs">
+                                    Available in guest setup page
+                                  </code>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="space-y-3">
+                            <button 
+                              onClick={() => {
+                                // Try to start streaming manually if auto-start failed
+                                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                                  navigator.mediaDevices.getUserMedia({
+                                    video: true,
+                                    audio: true
+                                  }).then(stream => {
+                                    setManualStream(stream);
+                                    if (manualVideoRef.current) {
+                                      manualVideoRef.current.srcObject = stream;
+                                    }
+                                  }).catch(err => {
+                                    console.error('Camera access failed:', err);
+                                    setError('Camera access denied. Please enable camera permissions and refresh.');
+                                  });
+                                }
+                              }}
+                              className="btn-primary"
+                            >
+                              {stream.isGuestStream ? 'Test Camera' : 'Start Camera'}
+                            </button>
+                            {stream.isGuestStream && (
+                              <p className="text-xs text-yellow-400">
+                                Note: For full streaming, use OBS or streaming software with the RTMP settings above
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        // Viewer trying to connect
+                        <div>
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                          <p className="text-white mb-2">Connecting to stream...</p>
+                          <p className="text-gray-400 text-sm">
+                            If this takes too long, the streamer might not be broadcasting yet
+                          </p>
+                        </div>
+                      )
                     ) : (
                       <div>
                         <div className="w-16 h-16 bg-gray-700 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -247,6 +337,15 @@ export default function StreamPage() {
           </div>
         </div>
       </div>
+      
+      {/* Hidden video element for manual streaming */}
+      <video
+        ref={manualVideoRef}
+        autoPlay
+        muted
+        playsInline
+        style={{ display: 'none' }}
+      />
     </div>
   );
 }

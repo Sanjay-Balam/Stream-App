@@ -32,6 +32,7 @@ export interface Stream {
   endedAt?: string;
   createdAt: string;
   updatedAt: string;
+  isGuestStream?: boolean;
 }
 
 export interface ChatMessage {

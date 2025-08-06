@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { Stream, User } from '../models';
+import { Stream, User, GuestStream } from '../models';
 import { authMiddleware } from '../middleware/auth';
 
 export const streamRoutes = new Elysia({ prefix: '/streams' })
@@ -25,12 +25,50 @@ export const streamRoutes = new Elysia({ prefix: '/streams' })
         .skip(skip)
         .limit(Number(limit));
 
-      const total = await Stream.countDocuments(filter);
+      // Also get guest streams with same filters
+      const guestStreams = await GuestStream.find(filter)
+        .sort({ isLive: -1, viewerCount: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit));
+
+      // Transform guest streams to match regular stream format
+      const transformedGuestStreams = guestStreams.map(guestStream => ({
+        _id: guestStream._id,
+        title: guestStream.title,
+        description: guestStream.description,
+        category: guestStream.category,
+        tags: guestStream.tags,
+        isLive: guestStream.isLive,
+        viewerCount: guestStream.viewerCount,
+        thumbnail: guestStream.thumbnail,
+        startedAt: guestStream.startedAt,
+        endedAt: guestStream.endedAt,
+        createdAt: guestStream.createdAt,
+        updatedAt: guestStream.updatedAt,
+        isGuestStream: true,
+        streamerId: {
+          _id: guestStream.guestId,
+          username: guestStream.guestDisplayName,
+          displayName: guestStream.guestDisplayName,
+          avatar: null
+        }
+      }));
+
+      // Combine and sort all streams
+      const allStreams = [...streams, ...transformedGuestStreams]
+        .sort((a, b) => {
+          if (a.isLive !== b.isLive) return b.isLive ? 1 : -1;
+          if (a.viewerCount !== b.viewerCount) return b.viewerCount - a.viewerCount;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        })
+        .slice(0, Number(limit));
+
+      const total = await Stream.countDocuments(filter) + await GuestStream.countDocuments(filter);
 
       return {
         success: true,
         data: {
-          streams,
+          streams: allStreams,
           pagination: {
             page: Number(page),
             limit: Number(limit),
@@ -57,19 +95,64 @@ export const streamRoutes = new Elysia({ prefix: '/streams' })
   
   .get('/:id', async ({ params }) => {
     try {
-      const stream = await Stream.findById(params.id)
+      // First try to find regular stream
+      let stream = await Stream.findById(params.id)
         .populate('streamerId', 'username displayName avatar bio followers');
 
-      if (!stream) {
+      if (stream) {
         return {
-          success: false,
-          error: 'Stream not found'
+          success: true,
+          data: { stream }
+        };
+      }
+
+      // If not found, try guest stream
+      const guestStream = await GuestStream.findById(params.id);
+      
+      if (guestStream) {
+        // Check if guest stream has expired
+        if (new Date() > guestStream.expiresAt) {
+          await GuestStream.findByIdAndDelete(params.id);
+          return {
+            success: false,
+            error: 'Stream not found'
+          };
+        }
+
+        // Transform guest stream to match regular stream format
+        const transformedGuestStream = {
+          _id: guestStream._id,
+          title: guestStream.title,
+          description: guestStream.description,
+          category: guestStream.category,
+          tags: guestStream.tags,
+          isLive: guestStream.isLive,
+          viewerCount: guestStream.viewerCount,
+          thumbnail: guestStream.thumbnail,
+          startedAt: guestStream.startedAt,
+          endedAt: guestStream.endedAt,
+          createdAt: guestStream.createdAt,
+          updatedAt: guestStream.updatedAt,
+          isGuestStream: true,
+          streamerId: {
+            _id: guestStream.guestId,
+            username: guestStream.guestDisplayName,
+            displayName: guestStream.guestDisplayName,
+            avatar: null,
+            bio: '',
+            followers: []
+          }
+        };
+
+        return {
+          success: true,
+          data: { stream: transformedGuestStream }
         };
       }
 
       return {
-        success: true,
-        data: { stream }
+        success: false,
+        error: 'Stream not found'
       };
     } catch (error) {
       console.error('Get stream error:', error);

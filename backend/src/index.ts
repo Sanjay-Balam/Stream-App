@@ -3,7 +3,7 @@ import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
-import { authRoutes, streamRoutes } from './routes';
+import { authRoutes, streamRoutes, guestStreamRoutes } from './routes';
 import { WebSocketService } from './services/websocket';
 
 const app = new Elysia()
@@ -29,17 +29,30 @@ const app = new Elysia()
   }))
   .use(authRoutes)
   .use(streamRoutes)
+  .use(guestStreamRoutes)
   .listen(env.PORT);
 
 const startServer = async () => {
   try {
-    await connectDatabase();
+    const dbConnected = await connectDatabase();
     
-    const wsService = new WebSocketService(Number(env.PORT) + 1000);
+    if (!dbConnected) {
+      console.log('⚠️  Database not connected - some features will be limited');
+    }
+    
+    try {
+      const wsService = new WebSocketService(Number(env.PORT) + 1000);
+      console.log(`🔌 WebSocket server running on port ${Number(env.PORT) + 1000}`);
+    } catch (wsError) {
+      console.log('⚠️  WebSocket server failed to start, continuing without it');
+    }
     
     console.log(`🚀 HTTP Server running at http://localhost:${env.PORT}`);
     console.log(`📄 API Documentation available at http://localhost:${env.PORT}/swagger`);
-    console.log(`🔌 WebSocket server running on port ${Number(env.PORT) + 1000}`);
+    
+    if (!dbConnected) {
+      console.log('💡 To fully test the app, please connect to MongoDB');
+    }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
