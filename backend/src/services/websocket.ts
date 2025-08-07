@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { ChatMessage, Stream } from '../models';
+import { GuestStream } from '../models/GuestStream';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { JWTPayload } from '../middleware/auth';
@@ -10,6 +11,7 @@ interface ConnectedClient {
   username: string;
   streamId?: string;
   isStreamer: boolean;
+  isGuest?: boolean;
 }
 
 export class WebSocketService {
@@ -59,6 +61,10 @@ export class WebSocketService {
       
       case 'join_stream':
         await this.handleJoinStream(ws, message);
+        break;
+      
+      case 'join_stream_guest':
+        await this.handleJoinStreamAsGuest(ws, message);
         break;
       
       case 'leave_stream':
@@ -132,7 +138,23 @@ export class WebSocketService {
         return;
       }
 
-      const stream = await Stream.findById(streamId).populate('streamerId');
+      // Try to find regular stream first
+      let stream = await Stream.findById(streamId).populate('streamerId');
+      let isGuestStream = false;
+      
+      // If not found, try guest stream
+      if (!stream) {
+        const guestStream = await GuestStream.findById(streamId);
+        if (guestStream && guestStream.isLive) {
+          stream = {
+            _id: guestStream._id,
+            isLive: guestStream.isLive,
+            streamerId: { _id: guestStream.guestId },
+            isGuestStream: true
+          } as any;
+          isGuestStream = true;
+        }
+      }
       
       if (!stream || !stream.isLive) {
         ws.send(JSON.stringify({
@@ -151,9 +173,16 @@ export class WebSocketService {
       
       this.streamViewers.get(streamId)!.add(client.userId);
 
-      await Stream.findByIdAndUpdate(streamId, {
-        viewerCount: this.streamViewers.get(streamId)!.size
-      });
+      // Update viewer count in appropriate model
+      if (isGuestStream) {
+        await GuestStream.findByIdAndUpdate(streamId, {
+          viewerCount: this.streamViewers.get(streamId)!.size
+        });
+      } else {
+        await Stream.findByIdAndUpdate(streamId, {
+          viewerCount: this.streamViewers.get(streamId)!.size
+        });
+      }
 
       this.broadcastToStream(streamId, {
         type: 'user_joined',
@@ -178,6 +207,90 @@ export class WebSocketService {
     }
   }
 
+  private async handleJoinStreamAsGuest(ws: WebSocket, message: any) {
+    try {
+      const { streamId, guestUsername } = message;
+      
+      // Try to find regular stream first
+      let stream = await Stream.findById(streamId).populate('streamerId');
+      let isGuestStream = false;
+      
+      // If not found, try guest stream
+      if (!stream) {
+        const guestStream = await GuestStream.findById(streamId);
+        if (guestStream && guestStream.isLive) {
+          stream = {
+            _id: guestStream._id,
+            isLive: guestStream.isLive,
+            streamerId: { _id: guestStream.guestId },
+            isGuestStream: true
+          } as any;
+          isGuestStream = true;
+        }
+      }
+      
+      if (!stream || !stream.isLive) {
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Stream not found or not live'
+        }));
+        return;
+      }
+
+      // Create guest client
+      const guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const clientId = `${guestId}_${Date.now()}`;
+      
+      this.clients.set(clientId, {
+        ws,
+        userId: guestId,
+        username: guestUsername || 'Guest',
+        streamId,
+        isStreamer: false,
+        isGuest: true
+      });
+
+      if (!this.streamViewers.has(streamId)) {
+        this.streamViewers.set(streamId, new Set());
+      }
+      
+      this.streamViewers.get(streamId)!.add(guestId);
+
+      // Update viewer count in appropriate model
+      if (isGuestStream) {
+        await GuestStream.findByIdAndUpdate(streamId, {
+          viewerCount: this.streamViewers.get(streamId)!.size
+        });
+      } else {
+        await Stream.findByIdAndUpdate(streamId, {
+          viewerCount: this.streamViewers.get(streamId)!.size
+        });
+      }
+
+      this.broadcastToStream(streamId, {
+        type: 'user_joined',
+        userId: guestId,
+        username: guestUsername || 'Guest',
+        viewerCount: this.streamViewers.get(streamId)!.size
+      });
+
+      ws.send(JSON.stringify({
+        type: 'joined_stream',
+        streamId,
+        isStreamer: false,
+        viewerCount: this.streamViewers.get(streamId)!.size,
+        clientId
+      }));
+
+    } catch (error) {
+      console.error('Join guest stream error:', error);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Failed to join stream as guest'
+      }));
+    }
+  }
+
   private async handleLeaveStream(ws: WebSocket, message: any) {
     const client = this.findClientByWs(ws);
     
@@ -191,9 +304,30 @@ export class WebSocketService {
       this.streamViewers.delete(streamId);
     }
 
-    await Stream.findByIdAndUpdate(streamId, {
-      viewerCount: this.streamViewers.get(streamId)?.size || 0
-    });
+    // Determine if it's a guest stream
+    let isGuestStream = false;
+    try {
+      const regularStream = await Stream.findById(streamId);
+      if (!regularStream) {
+        const guestStream = await GuestStream.findById(streamId);
+        if (guestStream) {
+          isGuestStream = true;
+        }
+      }
+
+      // Update viewer count in appropriate model
+      if (isGuestStream) {
+        await GuestStream.findByIdAndUpdate(streamId, {
+          viewerCount: this.streamViewers.get(streamId)?.size || 0
+        });
+      } else {
+        await Stream.findByIdAndUpdate(streamId, {
+          viewerCount: this.streamViewers.get(streamId)?.size || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error updating viewer count on leave:', error);
+    }
 
     this.broadcastToStream(streamId, {
       type: 'user_left',

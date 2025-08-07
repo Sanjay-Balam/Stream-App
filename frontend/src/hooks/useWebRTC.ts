@@ -32,6 +32,19 @@ export const useWebRTC = ({
 
   const handleWebSocketMessage = (message: any) => {
     switch (message.type) {
+      case 'authenticated':
+        // After authentication, join the stream
+        sendMessage({
+          type: 'join_stream',
+          streamId
+        });
+        break;
+        
+      case 'joined_stream':
+        console.log('Successfully joined stream:', message);
+        setViewers(message.viewerCount || 0);
+        break;
+        
       case 'user_joined':
         if (isStreamer && message.userId !== streamId) {
           createPeerConnection(message.userId, true);
@@ -61,6 +74,11 @@ export const useWebRTC = ({
         
       case 'webrtc_ice_candidate':
         handleIceCandidate(message);
+        break;
+        
+      case 'error':
+        console.error('WebSocket error:', message.message);
+        onError?.(message.message);
         break;
     }
   };
@@ -129,7 +147,7 @@ export const useWebRTC = ({
       }
     });
 
-    peer.on('signal', (data) => {
+    peer.on('signal', (data: any) => {
       if (data.type === 'offer') {
         sendMessage({
           type: 'webrtc_offer',
@@ -145,11 +163,11 @@ export const useWebRTC = ({
       }
     });
 
-    peer.on('stream', (remoteStream) => {
+    peer.on('stream', (remoteStream: any) => {
       onStreamReceived?.(remoteStream);
     });
 
-    peer.on('error', (error) => {
+    peer.on('error', (error: any) => {
       console.error('Peer connection error:', error);
       onError?.(`Connection error: ${error.message}`);
     });
@@ -173,7 +191,7 @@ export const useWebRTC = ({
       }
     });
 
-    peer.on('signal', (data) => {
+    peer.on('signal', (data: any) => {
       if (data.type === 'answer') {
         sendMessage({
           type: 'webrtc_answer',
@@ -183,11 +201,11 @@ export const useWebRTC = ({
       }
     });
 
-    peer.on('stream', (remoteStream) => {
+    peer.on('stream', (remoteStream: any) => {
       onStreamReceived?.(remoteStream);
     });
 
-    peer.on('error', (error) => {
+    peer.on('error', (error: any) => {
       console.error('Peer connection error:', error);
       onError?.(`Connection error: ${error.message}`);
     });
@@ -278,10 +296,31 @@ export const useWebRTC = ({
     if (isStreamer && isConnected) {
       startStreaming();
     } else if (!isStreamer && isConnected) {
-      sendMessage({
-        type: 'join_stream',
-        streamId
-      });
+      // Check if this is a guest stream - if so, join as guest
+      const guestId = localStorage.getItem('guestId');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (!authToken && guestId) {
+        // Join as guest (no authentication required)
+        sendMessage({
+          type: 'join_stream_guest',
+          streamId,
+          guestUsername: 'Guest Viewer'
+        });
+      } else if (authToken) {
+        // Authenticate first, then join
+        sendMessage({
+          type: 'authenticate',
+          token: authToken
+        });
+      } else {
+        // No auth token but not a guest stream viewer - try joining as guest anyway
+        sendMessage({
+          type: 'join_stream_guest',
+          streamId,
+          guestUsername: 'Anonymous Viewer'
+        });
+      }
     }
 
     return () => {
