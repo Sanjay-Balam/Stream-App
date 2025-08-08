@@ -338,7 +338,12 @@ export default function StreamPage() {
           
           <div className="lg:col-span-1">
             <div className="h-96 lg:h-[600px]">
-              <Chat streamId={streamId} wsUrl={wsUrl} />
+              <Chat 
+                streamId={streamId} 
+                wsUrl={wsUrl} 
+                isStreamer={isStreamer}
+                streamerId={stream?.streamerId._id}
+              />
             </div>
           </div>
         </div>

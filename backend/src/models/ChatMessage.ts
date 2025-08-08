@@ -34,7 +34,25 @@ const chatMessageSchema = new Schema<ChatMessageDocument>({
   isModerated: {
     type: Boolean,
     default: false
-  }
+  },
+  reactions: [{
+    emoji: {
+      type: String,
+      required: true
+    },
+    userId: {
+      type: String,
+      required: true
+    },
+    username: {
+      type: String,
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: false
 });

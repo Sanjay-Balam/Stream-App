@@ -28,7 +28,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/ws": "^8.5.8",
     "@types/uuid": "^9.0.7",
-    "typescript": "^5.2.2",
+    "typescript": "^5.9.2",
     "bun-types": "latest"
   }
 }

@@ -35,12 +35,82 @@ export interface Stream {
   isGuestStream?: boolean;
 }
 
+export interface ChatReaction {
+  emoji: string;
+  count: number;
+  users: Array<{
+    userId: string;
+    username: string;
+  }>;
+}
+
 export interface ChatMessage {
   id: string;
   userId: string;
   username: string;
   message: string;
   timestamp: string;
+  reactions?: ChatReaction[];
+}
+
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: number;
+  voters: string[];
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  options: PollOption[];
+  allowMultipleVotes: boolean;
+  showResults: boolean;
+  totalVotes: number;
+  isActive: boolean;
+  createdAt: string;
+  expiresAt?: string;
+}
+
+export interface GiftType {
+  id: string;
+  name: string;
+  emoji: string;
+  price: number;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  animation?: string;
+}
+
+export interface Gift {
+  id: string;
+  giftType: GiftType;
+  amount: number;
+  totalValue: number;
+  senderUsername: string;
+  recipientUsername: string;
+  message?: string;
+  isAnonymous: boolean;
+  timestamp: string;
+}
+
+export interface AnalyticsMetric {
+  timestamp: string;
+  value: number;
+}
+
+export interface StreamAnalytics {
+  currentViewers: number;
+  totalViewers: number;
+  peakViewers: number;
+  totalMessages: number;
+  totalReactions: number;
+  totalGifts: number;
+  totalRevenue: number;
+  totalGiftValue: number;
+  averageViewTime: number;
+  viewerHistory: AnalyticsMetric[];
+  chatActivity: AnalyticsMetric[];
+  giftActivity: AnalyticsMetric[];
 }
 
 export interface WebSocketMessage {

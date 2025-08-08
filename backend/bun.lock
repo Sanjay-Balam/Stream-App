@@ -23,7 +23,7 @@
         "@types/uuid": "^9.0.7",
         "@types/ws": "^8.5.8",
         "bun-types": "latest",
-        "typescript": "^5.2.2",
+        "typescript": "^5.9.2",
       },
     },
   },
