@@ -1,7 +1,24 @@
 import mongoose from 'mongoose';
+import { env } from './env';
 
 export const connectDatabase = async () => {
-  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/streaming-platform';
+  // Construct URI with dynamic database name
+  let mongoUri = env.MONGODB_URI;
+  
+  // If using Atlas URI, replace the database name
+  if (mongoUri.includes('mongodb+srv')) {
+    // Extract base URI without database name
+    const baseUri = mongoUri.split('?')[0]; // Remove query params
+    const queryParams = mongoUri.includes('?') ? '?' + mongoUri.split('?')[1] : '';
+    // Replace database name
+    mongoUri = baseUri.replace(/\/[^/]*$/, `/${env.MONGODB_DATABASE}`) + queryParams;
+  } else {
+    // For local MongoDB, replace database name
+    mongoUri = mongoUri.replace(/\/[^/]*$/, `/${env.MONGODB_DATABASE}`);
+  }
+  
+  console.log(`🔗 Connecting to database: ${env.MONGODB_DATABASE}`);
+  console.log(`📍 MongoDB URI: ${mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`); // Hide credentials
   
   try {
     // Try Atlas connection first
@@ -12,18 +29,18 @@ export const connectDatabase = async () => {
       maxPoolSize: 10,
       bufferCommands: false,
     });
-    console.log('✅ Connected to MongoDB Atlas');
+    console.log(`✅ Connected to MongoDB Atlas - Database: ${env.MONGODB_DATABASE}`);
   } catch (error) {
     console.error('❌ MongoDB Atlas connection error:', error);
     
     if (mongoUri.includes('mongodb+srv')) {
       console.log('🔄 Atlas connection failed, falling back to local MongoDB...');
       try {
-        await mongoose.connect('mongodb://localhost:27017/streaming-platform', {
+        await mongoose.connect(`mongodb://localhost:27017/${env.MONGODB_DATABASE}`, {
           serverSelectionTimeoutMS: 5000,
           socketTimeoutMS: 45000,
         });
-        console.log('✅ Connected to local MongoDB');
+        console.log(`✅ Connected to local MongoDB - Database: ${env.MONGODB_DATABASE}`);
       } catch (localError) {
         console.error('❌ Local MongoDB connection also failed:', localError);
         console.log('💡 Options:');

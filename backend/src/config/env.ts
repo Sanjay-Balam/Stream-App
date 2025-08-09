@@ -6,6 +6,7 @@ export const env = {
   PORT: process.env.PORT || 3001,
   NODE_ENV: process.env.NODE_ENV || 'development',
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/streaming-platform',
+  MONGODB_DATABASE: process.env.MONGODB_DATABASE || 'streaming-platform',
   JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key',
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',

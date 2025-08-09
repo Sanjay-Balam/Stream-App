@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useAuthStore } from '../stores/auth';
 import { useEffect, useState } from 'react';
-import { User, Settings, LogOut, Video, Search } from 'lucide-react';
+import { User, Settings, LogOut, Video, Search, Database } from 'lucide-react';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout, checkAuth } = useAuthStore();
@@ -100,6 +100,13 @@ export default function Navbar() {
                       >
                         <Settings className="w-4 h-4" />
                         <span>Settings</span>
+                      </Link>
+                      <Link 
+                        href="/admin"
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                      >
+                        <Database className="w-4 h-4" />
+                        <span>Admin Panel</span>
                       </Link>
                       <button
                         onClick={logout}

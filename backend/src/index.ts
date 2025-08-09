@@ -3,7 +3,7 @@ import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
-import { authRoutes, streamRoutes, guestStreamRoutes } from './routes';
+import { authRoutes, streamRoutes, guestStreamRoutes, dynamicRoutes } from './routes';
 import { WebSocketService } from './services/websocket';
 
 const app = new Elysia()
@@ -30,6 +30,7 @@ const app = new Elysia()
   .use(authRoutes)
   .use(streamRoutes)
   .use(guestStreamRoutes)
+  .use(dynamicRoutes)
   .listen(env.PORT);
 
 const startServer = async () => {
