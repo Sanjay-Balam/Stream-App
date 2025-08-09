@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
+import { getApiUrl } from './config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = getApiUrl();
 
 // Create axios instance with default config
 const dynamicApi = axios.create({

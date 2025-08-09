@@ -22,6 +22,7 @@ import {
   Check,
   RefreshCw
 } from 'lucide-react';
+import { getDatabaseName } from '../lib/config';
 
 interface DynamicDataExplorerProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ interface DynamicDataExplorerProps {
 export default function DynamicDataExplorer({
   isOpen,
   onClose,
-  database = process.env.NEXT_PUBLIC_MONGODB_DATABASE || 'streaming-platform',
+  database = getDatabaseName(),
   initialTable = 'Users'
 }: DynamicDataExplorerProps) {
   const [selectedTable, setSelectedTable] = useState(initialTable);

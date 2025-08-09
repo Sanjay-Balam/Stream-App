@@ -5,10 +5,11 @@ import Navbar from '../../components/Navbar';
 import DynamicDataExplorer from '../../components/DynamicDataExplorer';
 import { useAuthStore } from '../../stores/auth';
 import { Database, Users, MessageSquare, BarChart3, Gift, TrendingUp } from 'lucide-react';
+import { getDatabaseName } from '../../lib/config';
 
 export default function AdminPage() {
   const [showDataExplorer, setShowDataExplorer] = useState(false);
-  const [selectedDatabase] = useState(process.env.NEXT_PUBLIC_MONGODB_DATABASE || 'streaming-platform');
+  const [selectedDatabase] = useState(getDatabaseName());
   const [selectedTable, setSelectedTable] = useState('Users');
   const { user, isAuthenticated } = useAuthStore();
 
